@@ -21,11 +21,12 @@ class ObjectValueWriter implements ValueWriter {
     write(value, context, null);
   }
 
+
   private ObjectValueWriter() {
   }
 
   private static Set<Field> getFields(Class<?> cls) {
-    Set<Field> fields = new LinkedHashSet<>(Arrays.asList(cls.getDeclaredFields()));
+    Set<Field> fields = new LinkedHashSet<Field>(Arrays.asList(cls.getDeclaredFields()));
     while (cls != Object.class) {
       fields.addAll(Arrays.asList(cls.getDeclaredFields()));
       cls = cls.getSuperclass();
@@ -36,15 +37,18 @@ class ObjectValueWriter implements ValueWriter {
   }
 
   private static void removeConstantsAndSyntheticFields(Set<Field> fields) {
-    fields.removeIf(field -> (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) || field.isSynthetic() || Modifier.isTransient(field.getModifiers()) || field.isAnnotationPresent(TomlIgnore.class));
+    Iterator<Field> iterator = fields.iterator();
+    while (iterator.hasNext()) {
+      Field field = iterator.next();
+      if ((Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) || field.isSynthetic() || Modifier.isTransient(field.getModifiers()) || field.isAnnotationPresent(TomlIgnore.class)) {
+        iterator.remove();
+      }
+    }
   }
 
   private static Object getFieldValue(Field field, Object o) {
-    if (field.isAnnotationPresent(TomlIgnore.class)) return null;
-    //noinspection deprecation
     boolean isAccessible = field.isAccessible();
-
-    if (!field.trySetAccessible()) return null;
+    field.setAccessible(true);
     Object value = null;
     try {
       value = field.get(o);
